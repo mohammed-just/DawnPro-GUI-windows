@@ -1,8 +1,32 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import json
 import os
 from pathlib import Path
+
+
+def get_app_config_dir() -> Path:
+    """Return the platform-appropriate configuration directory."""
+    if os.name == 'nt':
+        appdata = os.getenv('APPDATA')
+        if appdata:
+            return Path(appdata) / 'dawnpro'
+        return Path.home() / 'AppData' / 'Roaming' / 'dawnpro'
+
+    xdg_config_home = os.getenv('XDG_CONFIG_HOME')
+    if xdg_config_home:
+        return Path(xdg_config_home) / 'dawnpro'
+    return Path.home() / '.config' / 'dawnpro'
+
+
+def get_default_config_path() -> Path:
+    """Return the default configuration file path."""
+    return get_app_config_dir() / 'config.json'
+
+
+def get_default_log_path() -> Path:
+    """Return the default log file path."""
+    return get_app_config_dir() / 'dawnpro.log'
 
 
 @dataclass
@@ -26,6 +50,15 @@ class DeviceIdentifiers:
     """Device identification constants."""
     MOONDROP_VID: int = 0x2fc6
     DAWN_PRO_PID: int = 0xf06a
+    ADDITIONAL_DEVICE_IDS: List[Dict[str, Any]] = field(
+        default_factory=lambda: [
+            {
+                'name': 'Moondrop Dawn Pro 2',
+                'vendor_id': 0x05E3,
+                'product_id': 0x0749,
+            }
+        ]
+    )
     VOLUME_MAX: int = 0x00
     VOLUME_MIN: int = 0x70
 
@@ -37,6 +70,14 @@ class DefaultSettings:
     DEFAULT_LED_STATUS: str = "On"
     DEFAULT_GAIN: str = "Low"
     DEFAULT_FILTER: str = "Fast Roll-Off Low Latency"
+
+
+@dataclass
+class DawnPro2Settings:
+    """Default settings for the Dawn Pro 2 HID interface."""
+    DEFAULT_EQ_INDEX: int = 0
+    DEFAULT_PRE_GAIN: float = 0.0
+    DEFAULT_GLOBAL_GAIN: float = 0.0
 
 
 @dataclass
@@ -65,6 +106,7 @@ class AppConfig:
     device_constants: DeviceConstants = field(default_factory=DeviceConstants)
     device_identifiers: DeviceIdentifiers = field(default_factory=DeviceIdentifiers)
     default_settings: DefaultSettings = field(default_factory=DefaultSettings)
+    dawn_pro2_settings: DawnPro2Settings = field(default_factory=DawnPro2Settings)
     ui_metrics: UIMetrics = field(default_factory=UIMetrics)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
@@ -92,6 +134,7 @@ class AppConfig:
             device_constants=DeviceConstants(**config_data.get('device_constants', {})),
             device_identifiers=DeviceIdentifiers(**config_data.get('device_identifiers', {})),
             default_settings=DefaultSettings(**config_data.get('default_settings', {})),
+            dawn_pro2_settings=DawnPro2Settings(**config_data.get('dawn_pro2_settings', {})),
             ui_metrics=UIMetrics(**config_data.get('ui_metrics', {})),
             logging=LoggingConfig(**config_data.get('logging', {}))
         )
@@ -113,6 +156,7 @@ class AppConfig:
             'device_constants': self.device_constants.__dict__,
             'device_identifiers': self.device_identifiers.__dict__,
             'default_settings': self.default_settings.__dict__,
+            'dawn_pro2_settings': self.dawn_pro2_settings.__dict__,
             'ui_metrics': self.ui_metrics.__dict__,
             'logging': self.logging.__dict__
         }

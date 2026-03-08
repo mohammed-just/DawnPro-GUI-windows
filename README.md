@@ -18,9 +18,11 @@ DawnPro-Utils is a tool used to control the Moondrop Dawn Pro AMP/DAC.
 
 ## Requirements
 
-- Python 3.7 or higher
-- `usb` module
-- `PyGObject`
+- Python 3.10 or higher
+- `pyusb`
+- On Windows: `libusb-package`
+- For Dawn Pro 2 HID control: `hidapi`
+- Tkinter, which is bundled with standard Python on Windows
 
 ## Installation
 
@@ -45,15 +47,14 @@ makepkg -si
 
 ### Manual Installation
 
-To install pyusb, run:
+Install the Python packages:
 
 ```sh
-pip install pyusb
+pip install -r requirements.txt
 ```
 
-To install PyGObject, it may depend on your distro or operating system:
-
-https://pygobject.gnome.org/
+On Windows, the application uses Tkinter for the GUI and `libusb-package` to provide a libusb backend for PyUSB.
+For Dawn Pro 2, the application also supports the HID control interface exposed as `VID=0x35D8`, `PID=0x011D`, which works through `hidapi` and does not require replacing the audio driver.
 
 ## Setup
 
@@ -72,7 +73,12 @@ sudo udevadm trigger
 
 ## Configuration
 
-The application uses a configuration file located at `~/.config/dawnpro/config.json`. If this file doesn't exist, the application will use default settings.
+The application uses a platform-specific configuration file:
+
+- Linux: `~/.config/dawnpro/config.json`
+- Windows: `%APPDATA%\dawnpro\config.json`
+
+If the file does not exist, the application uses default settings.
 
 ### Setting Up Configuration
 
@@ -85,6 +91,8 @@ mkdir -p ~/.config/dawnpro
 ```sh
 cp config.json ~/.config/dawnpro/config.json
 ```
+
+On Windows, copy `config.json` to `%APPDATA%\dawnpro\config.json` instead.
 
 ### Configuration Sections
 
@@ -112,6 +120,13 @@ The configuration file is divided into several sections:
    "device_identifiers": {
        "MOONDROP_VID": 12230,
        "DAWN_PRO_PID": 61546,
+       "ADDITIONAL_DEVICE_IDS": [
+           {
+               "name": "Moondrop Dawn Pro 2",
+               "vendor_id": 1507,
+               "product_id": 1865
+           }
+       ],
        "VOLUME_MAX": 0,
        "VOLUME_MIN": 112
    }
@@ -127,7 +142,16 @@ The configuration file is divided into several sections:
    }
    ```
 
-4. `ui_metrics`: Window size and UI element spacing
+4. `dawn_pro2_settings`: Default values for Dawn Pro 2 HID controls
+    ```json
+    "dawn_pro2_settings": {
+         "DEFAULT_EQ_INDEX": 0,
+         "DEFAULT_PRE_GAIN": 0.0,
+         "DEFAULT_GLOBAL_GAIN": 0.0
+    }
+    ```
+
+5. `ui_metrics`: Window size and UI element spacing
    ```json
    "ui_metrics": {
        "WINDOW_WIDTH": 400,
@@ -140,13 +164,13 @@ The configuration file is divided into several sections:
    }
    ```
 
-5. `logging`: Logging configuration
+6. `logging`: Logging configuration
    ```json
-   "logging": {
-       "LOG_LEVEL": "INFO",
-       "LOG_FORMAT": "%(asctime)s - %(levelname)s - %(message)s",
-       "LOG_FILE": "~/.config/dawnpro/dawnpro.log"
-   }
+    "logging": {
+        "LOG_LEVEL": "INFO",
+        "LOG_FORMAT": "%(asctime)s - %(levelname)s - %(message)s",
+        "LOG_FILE": "~/.config/dawnpro/dawnpro.log"
+    }
    ```
 
 ### Example Custom Configuration
@@ -182,6 +206,11 @@ To run the tool, execute the following command:
 ```sh
 python main.py
 ```
+
+On Windows, if the device is not found, install a WinUSB-compatible driver for the DAC with Zadig so PyUSB can access it through libusb.
+
+The app currently recognizes both the original Dawn Pro (`VID=0x2FC6`, `PID=0xF06A`) and Dawn Pro 2 (`VID=0x05E3`, `PID=0x0749`).
+For Dawn Pro 2, the control path now prefers the separate HID interface (`VID=0x35D8`, `PID=0x011D`) and can read/write firmware version, active EQ preset, pre gain, and global gain.
 
 ## Acknowledgments
 Inspired by:

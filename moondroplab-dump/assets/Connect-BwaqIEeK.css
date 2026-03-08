@@ -1,0 +1,1 @@
+.spinner[data-v-5342857d]{animation:spinner-circle-clipper-5342857d 1s ease-in-out infinite}.spinner-inner[data-v-5342857d]{animation:spinner-circle-5342857d 1s ease-in-out infinite}@keyframes spinner-circle-clipper-5342857d{0%{transform:rotate(0)}to{transform:rotate(180deg)}}@keyframes spinner-circle-5342857d{0%{transform:rotate(-180deg)}to{transform:rotate(180deg)}}
