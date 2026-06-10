@@ -1,261 +1,132 @@
-# DawnPro-GUI
-DawnPro-GUI is a tool used to control the Moondrop Dawn Pro AMP/DAC.
+# DawnPro-GUI Windows / DAWN PRO2
 
-![screenshot](preview.png)
+Cross-platform Python desktop controller for Moondrop Dawn Pro devices, with first-class support for the **Moondrop DAWN PRO2** HID interface.
 
-## Features
+This version is based on the original [shaypower/DawnPro-GUI](https://github.com/shaypower/DawnPro-GUI) project, which controlled the original Moondrop Dawn Pro through USB control transfers. This fork keeps that original backend and adds a new DAWN PRO2 backend modeled after Moondrop's official [Custom EQ web app](https://app.moondroplab.com/).
 
-- Change the LED status (on, temp-off, off)
-- Set the gain (low, high)
-- Configure the filters:
-    - Fast-roll-off-low-latency
-    - Fast-roll-off-phase-compensated
-    - Slow-roll-off-low-latency
-    - Slow-roll-off-phase-compensated
-    - Non-oversampling
-- Adjust the volume
-- Fully configurable through JSON configuration file
+## Supported Devices
 
-## Requirements
+| Device | Backend | Status |
+| --- | --- | --- |
+| Moondrop DAWN PRO2 | HID `VID=0x35D8`, `PID=0x011D` | Supported |
+| Original Moondrop Dawn Pro | PyUSB control transfers | Preserved from upstream |
 
-- Python 3.7 or higher
-- `usb` module
-- `PyGObject`
+The app now prefers the DAWN PRO2 HID backend when that device is connected, then falls back to the original Dawn Pro USB backend.
 
-## Installation
+## DAWN PRO2 Features
 
-### From AUR (Arch Linux)
+- Read firmware version
+- Read and set active EQ index
+- Read and set pre-gain
+- Read and set global gain
+- Read all 8 PEQ bands
+- Edit PEQ frequency, Q, gain, filter type, and enabled state
+- Generate PEQ coefficients compatible with Moondrop Custom EQ
+- Apply PEQ coefficients to the device
+- Save EQ settings to flash
+- Save gain offsets to flash
+- Diagnostic window for HID and USB device enumeration
 
-The package is available on the Arch User Repository (AUR). You can install it using your preferred AUR helper:
+Firmware-upgrade command constants are documented in code, but firmware flashing is intentionally not exposed in the GUI yet.
 
-```sh
-# Using yay
-yay -S dawnpro-gui
+## Install
 
-# Using paru
-paru -S dawnpro-gui
+### Windows
+
+Install Python dependencies:
+
+```powershell
+pip install -r requirements.txt
 ```
 
-Or build it manually:
-```sh
-git clone https://aur.archlinux.org/dawnpro-gui.git
-cd dawnpro-gui
-makepkg -si
+Run the app:
+
+```powershell
+python main.py
 ```
 
-### Manual Installation
+DAWN PRO2 uses HID, so it should work without replacing the audio driver with Zadig. Zadig/WinUSB is only relevant if you want to access the original Dawn Pro through PyUSB on Windows.
 
-To install pyusb, run:
+### WSL / Linux
+
+Install system packages:
 
 ```sh
-pip install pyusb
+sudo apt update
+sudo apt install -y python3-tk python3-hid python3-usb usbutils libhidapi-hidraw0 libhidapi-libusb0
 ```
 
-To install PyGObject, it may depend on your distro or operating system:
-
-https://pygobject.gnome.org/
-
-## Setup
-
-Add the following rule to your udev rules (you may need to adjust the rule name based on existing rules in `/etc/udev/rules.d/`):
+Add udev rules:
 
 ```sh
-echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", MODE="0666"' | sudo tee /etc/udev/rules.d/99-dawn-pro.rules
-```
-
-Then run:
-
-```sh
+sudo tee /etc/udev/rules.d/99-dawn-pro.rules >/dev/null <<'EOF'
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="35d8", ATTRS{idProduct}=="011d", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="35d8", ATTRS{idProduct}=="011d", MODE="0666", TAG+="uaccess"
+EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
+For WSL, attach the USB device from Windows with `usbipd-win`, then verify:
+
+```sh
+lsusb | grep -i '35d8:011d'
+```
+
+Run:
+
+```sh
+python3 main.py
+```
+
 ## Configuration
 
-The application uses a configuration file located at `~/.config/dawnpro/config.json`. If this file doesn't exist, the application will use default settings.
+The app uses a platform-specific config path:
 
-### Setting Up Configuration
+- Windows: `%APPDATA%\dawnpro\config.json`
+- Linux / WSL: `~/.config/dawnpro/config.json`
 
-1. Create the configuration directory:
-```sh
-mkdir -p ~/.config/dawnpro
-```
-
-2. Copy the default configuration:
-```sh
-cp config.json ~/.config/dawnpro/config.json
-```
-
-### Configuration Sections
-
-The configuration file is divided into several sections:
-
-1. `device_constants`: USB communication constants
-   ```json
-   "device_constants": {
-       "BM_REQUEST_TYPE_OUT": 67,
-       "BM_REQUEST_TYPE_IN": 195,
-       "B_REQUEST": 160,
-       "B_REQUEST_GET": 161,
-       "W_VALUE": 0,
-       "W_INDEX": 2464,
-       "VOLUME_REFRESH_DATA": [192, 165, 162],
-       "DATA_LENGTH": 7,
-       "LED_STATUS_ENABLED": 0,
-       "LED_STATUS_TEMP_OFF": 1,
-       "LED_STATUS_OFF": 2
-   }
-   ```
-
-2. `device_identifiers`: Device vendor and product IDs
-   ```json
-   "device_identifiers": {
-       "MOONDROP_VID": 12230,
-       "DAWN_PRO_PID": 61546,
-       "VOLUME_MAX": 0,
-       "VOLUME_MIN": 112
-   }
-   ```
-
-3. `default_settings`: Default values for device settings
-   ```json
-   "default_settings": {
-       "DEFAULT_VOLUME": 50,
-       "DEFAULT_LED_STATUS": "On",
-       "DEFAULT_GAIN": "Low",
-       "DEFAULT_FILTER": "Fast Roll-Off Low Latency"
-   }
-   ```
-
-4. `ui_metrics`: Window size and UI element spacing
-   ```json
-   "ui_metrics": {
-       "WINDOW_WIDTH": 400,
-       "WINDOW_HEIGHT": 300,
-       "MARGIN_TOP": 10,
-       "MARGIN_BOTTOM": 20,
-       "MARGIN_START": 10,
-       "MARGIN_END": 10,
-       "SPACING": 10
-   }
-   ```
-
-5. `logging`: Logging configuration
-   ```json
-   "logging": {
-       "LOG_LEVEL": "INFO",
-       "LOG_FORMAT": "%(asctime)s - %(levelname)s - %(message)s",
-       "LOG_FILE": "~/.config/dawnpro/dawnpro.log"
-   }
-   ```
-
-### Example Custom Configuration
-
-Here's an example of a custom configuration that changes some default values:
+DAWN PRO2 defaults:
 
 ```json
 {
-    "default_settings": {
-        "DEFAULT_VOLUME": 75,
-        "DEFAULT_LED_STATUS": "Off",
-        "DEFAULT_GAIN": "High",
-        "DEFAULT_FILTER": "Fast Roll-Off Phase Compensated"
-    },
-    "ui_metrics": {
-        "WINDOW_WIDTH": 500,
-        "WINDOW_HEIGHT": 400,
-        "SPACING": 15
-    },
-    "logging": {
-        "LOG_LEVEL": "DEBUG",
-        "LOG_FILE": "~/.config/dawnpro/debug.log"
-    }
+  "dawn_pro2_settings": {
+    "DEFAULT_EQ_INDEX": 0,
+    "DEFAULT_PRE_GAIN": 0.0,
+    "DEFAULT_GLOBAL_GAIN": 0.0
+  }
 }
-```
-
-## Usage
-
-Ensure the DAC/AMP is plugged in before running the script.
-
-To run the tool, execute the following command:
-
-```sh
-python main.py
 ```
 
 ## Testing
 
-The project includes a comprehensive test suite with hardware emulation, allowing tests to run without physical hardware.
-
-### Running Tests
-
-Install test dependencies:
-
-```sh
-pip install -r requirements-test.txt
-```
-
-Run all tests:
+Run the test suite:
 
 ```sh
 pytest
 ```
 
-Run tests with verbose output:
+Current coverage focuses on:
 
-```sh
-pytest tests/ -v
-```
+- backward-compatible config loading
+- DAWN PRO2 HID packet layout
+- fixed-point gain encoding and decoding
+- PEQ read parsing
+- PEQ coefficient generation
+- backend selection between DAWN PRO2 and original Dawn Pro
 
-Run tests with coverage report:
+## Planned Future Features
 
-```sh
-pytest --cov=device --cov=tests --cov-report=html
-```
+- Firmware update workflow with checksum validation and recovery warnings
+- Import/export EQ presets compatible with Moondrop Custom EQ
+- Batch PEQ editing and preset comparison
+- Realtime graph preview for PEQ filters
+- Safer WSL setup helper for `usbipd-win`
+- Packaged Windows release with a launcher
+- More original Dawn Pro regression tests against the legacy USB backend
 
-Open the coverage report:
+## Credits
 
-```sh
-xdg-open htmlcov/index.html  # Linux
-open htmlcov/index.html      # macOS
-```
-
-### Test Structure
-
-```
-tests/
-├── conftest.py           # Pytest fixtures and configuration
-├── mock_hardware.py      # Hardware emulation layer
-├── test_device.py        # Device detection tests
-├── test_volume.py        # Volume control tests
-├── test_gain.py          # Gain switching tests
-├── test_filters.py       # Filter selection tests
-├── test_led.py           # LED status tests
-├── test_integration.py   # End-to-end integration tests
-└── test_error_handling.py # Error handling tests
-```
-
-### Build Verification
-
-Run the build verification script to check:
-- Python version compatibility
-- Required dependencies
-- Syntax validation
-- Configuration file validity
-
-```sh
-python scripts/build_check.py
-```
-
-### CI/CD
-
-Tests run automatically on every push and pull request via GitHub Actions. The CI pipeline:
-- Tests on Python 3.7, 3.8, 3.9, 3.10, 3.11
-- Runs linting (black, flake8, pylint)
-- Generates coverage reports
-- Blocks merges on test failures
-
-## Acknowledgments
-Inspired by:
-
-"mdrop" by frahz: https://github.com/frahz/mdrop/
+- Original project: [shaypower/DawnPro-GUI](https://github.com/shaypower/DawnPro-GUI)
+- DAWN PRO2 protocol reference: [Moondrop Custom EQ](https://app.moondroplab.com/)

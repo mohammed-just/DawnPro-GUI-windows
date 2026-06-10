@@ -1,8 +1,41 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass, field, fields
+from typing import Any, Dict, List, Optional, Type, TypeVar
 import json
 import os
 from pathlib import Path
+
+
+T = TypeVar("T")
+
+
+def _dataclass_from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
+    """Build a dataclass while ignoring unknown keys from newer configs."""
+    valid_fields = {field.name for field in fields(cls)}
+    return cls(**{key: value for key, value in data.items() if key in valid_fields})
+
+
+def get_app_config_dir() -> Path:
+    """Return the platform-appropriate configuration directory."""
+    if os.name == "nt":
+        appdata = os.getenv("APPDATA")
+        if appdata:
+            return Path(appdata) / "dawnpro"
+        return Path.home() / "AppData" / "Roaming" / "dawnpro"
+
+    xdg_config_home = os.getenv("XDG_CONFIG_HOME")
+    if xdg_config_home:
+        return Path(xdg_config_home) / "dawnpro"
+    return Path.home() / ".config" / "dawnpro"
+
+
+def get_default_config_path() -> Path:
+    """Return the default application configuration file path."""
+    return get_app_config_dir() / "config.json"
+
+
+def get_default_log_path() -> Path:
+    """Return the default application log file path."""
+    return get_app_config_dir() / "dawnpro.log"
 
 
 @dataclass
@@ -26,6 +59,7 @@ class DeviceIdentifiers:
     """Device identification constants."""
     MOONDROP_VID: int = 0x2fc6
     DAWN_PRO_PID: int = 0xf06a
+    ADDITIONAL_DEVICE_IDS: List[Dict[str, Any]] = field(default_factory=list)
     VOLUME_MAX: int = 0x00
     VOLUME_MIN: int = 0x70
 
@@ -37,6 +71,14 @@ class DefaultSettings:
     DEFAULT_LED_STATUS: str = "On"
     DEFAULT_GAIN: str = "Low"
     DEFAULT_FILTER: str = "Fast Roll-Off Low Latency"
+
+
+@dataclass
+class DawnPro2Settings:
+    """Default settings for the Dawn Pro 2 HID interface."""
+    DEFAULT_EQ_INDEX: int = 0
+    DEFAULT_PRE_GAIN: float = 0.0
+    DEFAULT_GLOBAL_GAIN: float = 0.0
 
 
 @dataclass
@@ -65,6 +107,7 @@ class AppConfig:
     device_constants: DeviceConstants = field(default_factory=DeviceConstants)
     device_identifiers: DeviceIdentifiers = field(default_factory=DeviceIdentifiers)
     default_settings: DefaultSettings = field(default_factory=DefaultSettings)
+    dawn_pro2_settings: DawnPro2Settings = field(default_factory=DawnPro2Settings)
     ui_metrics: UIMetrics = field(default_factory=UIMetrics)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
@@ -85,15 +128,24 @@ class AppConfig:
         if not os.path.exists(config_path):
             return cls()
 
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
 
         return cls(
-            device_constants=DeviceConstants(**config_data.get('device_constants', {})),
-            device_identifiers=DeviceIdentifiers(**config_data.get('device_identifiers', {})),
-            default_settings=DefaultSettings(**config_data.get('default_settings', {})),
-            ui_metrics=UIMetrics(**config_data.get('ui_metrics', {})),
-            logging=LoggingConfig(**config_data.get('logging', {}))
+            device_constants=_dataclass_from_dict(
+                DeviceConstants, config_data.get('device_constants', {})
+            ),
+            device_identifiers=_dataclass_from_dict(
+                DeviceIdentifiers, config_data.get('device_identifiers', {})
+            ),
+            default_settings=_dataclass_from_dict(
+                DefaultSettings, config_data.get('default_settings', {})
+            ),
+            dawn_pro2_settings=_dataclass_from_dict(
+                DawnPro2Settings, config_data.get('dawn_pro2_settings', {})
+            ),
+            ui_metrics=_dataclass_from_dict(UIMetrics, config_data.get('ui_metrics', {})),
+            logging=_dataclass_from_dict(LoggingConfig, config_data.get('logging', {}))
         )
 
     def save_to_file(self, config_path: str) -> None:
@@ -113,14 +165,15 @@ class AppConfig:
             'device_constants': self.device_constants.__dict__,
             'device_identifiers': self.device_identifiers.__dict__,
             'default_settings': self.default_settings.__dict__,
+            'dawn_pro2_settings': self.dawn_pro2_settings.__dict__,
             'ui_metrics': self.ui_metrics.__dict__,
             'logging': self.logging.__dict__
         }
 
-        with open(config_path, 'w') as f:
+        with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, indent=4)
 
-    def get_constants_dict(self) -> Dict[str, any]:
+    def get_constants_dict(self) -> Dict[str, Any]:
         """Get all constants as a dictionary for device communication.
 
         Returns:
