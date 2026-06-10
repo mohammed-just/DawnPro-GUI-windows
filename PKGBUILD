@@ -2,14 +2,14 @@
 pkgname=dawnpro-gui
 pkgver=1.1.0
 pkgrel=1
-pkgdesc="GUI tool for controlling the Moondrop Dawn Pro AMP/DAC"
+pkgdesc="GUI tool for controlling Moondrop Dawn Pro and DAWN PRO2 devices"
 arch=('any')
-url="https://github.com/shaypower/DawnPro-GUI"
+url="https://github.com/mohammed-just/DawnPro-GUI-windows"
 license=('MIT')
-depends=('python3' 'python-pyusb' 'python-gobject' 'gtk3')
+depends=('python' 'python-pyusb' 'python-hidapi' 'hidapi' 'tk')
 makedepends=('git')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/shaypower/DawnPro-GUI/archive/v$pkgver.tar.gz")
-sha256sums=('9a7281aa6d64d63ddc040b27a9cdbd6fb87ea766273e5d96ce78220082f888e3')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/mohammed-just/DawnPro-GUI-windows/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
 
 package() {
   cd "$srcdir/DawnPro-GUI-$pkgver"
@@ -55,6 +55,9 @@ Categories=AudioVideo;Audio;
 EOF
   
   # Install udev rules
-  install -Dm644 /dev/null "$pkgdir/usr/lib/udev/rules.d/99-dawn-pro.rules"
-  echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", MODE="0666"' > "$pkgdir/usr/lib/udev/rules.d/99-dawn-pro.rules"
+  cat > "$pkgdir/usr/lib/udev/rules.d/99-dawn-pro.rules" << EOF
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2fc6", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="35d8", ATTRS{idProduct}=="011d", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="35d8", ATTRS{idProduct}=="011d", MODE="0666", TAG+="uaccess"
+EOF
 } 
