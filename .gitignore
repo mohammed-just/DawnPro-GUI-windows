@@ -3,3 +3,48 @@ __pycache__/
 .venv/
 *.pyc
 *.log
+
+# Local virtual environments
+.venv-win/
+venv/
+
+# Python test cache
+.pytest_cache/
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Tt]est[Rr]esult*/
+
+# IDE / editor
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Secrets / local environment (never commit real keys)
+.env
+.env.*
+!.env.example
+
+# Harness-local caches (empty/stale agent/codex/hermes state)
+.agents/
+.codex/
+.hermes/
+
+# Generated self-contained physical-runtime candidate trees.
+# These are reproducible via "Moondrop.PhysicalWatchdog.dll --build-runtime-smoke"
+# (staged source + runner/watchdog publish + runtime manifest + offline topology evidence).
+# The durable evidence is the source, the TDD evidence docs, and the reproducibility
+# procedure, not these regenerable publish trees.
+tests-dotnet/artifacts/physical-runtime/
+
+# Intentionally RETAINED (not ignored): tests-dotnet/artifacts/hardware-snapshots/ and
+# tests-dotnet/artifacts/hardware-results/ hold read-only PREPARE session/raw-frame evidence.
+
+# Local-only physical evidence and generated harness artifacts. Device readbacks and session
+# files embed one-run/confirmation tokens and candidate trees are regenerable; none of this
+# belongs in version control. Evidence stays local in the working tree.
+tests-dotnet/artifacts/
+artifacts/

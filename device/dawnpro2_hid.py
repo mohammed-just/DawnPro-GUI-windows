@@ -174,9 +174,11 @@ class DawnPro2Hid:
     def _coefficients_to_bytes(cls, coefficients: List[int]) -> List[int]:
         result: List[int] = []
         for coefficient in coefficients:
-            result.extend(
-                int(coefficient).to_bytes(4, byteorder="little", signed=True)
-            )
+            # The Moondrop web app extracts each byte with JavaScript bitwise
+            # operators. Those operators keep the low 32 bits even when the
+            # scaled coefficient is outside the signed int32 range.
+            wrapped_coefficient = int(coefficient) & 0xFFFFFFFF
+            result.extend(wrapped_coefficient.to_bytes(4, byteorder="little"))
         return result
 
     @classmethod
@@ -394,10 +396,19 @@ class DawnPro2Hid:
         self._send(payload, expect_response=False)
 
     def write_all_peq_bands(self, bands: List[DawnPro2PeqBand], save: bool = False) -> None:
-        for index, band in enumerate(bands[: self.PEQ_COUNT]):
-            self.write_peq_band(index, band)
+        if len(bands) > self.PEQ_COUNT:
+            raise ValueError(f"cannot write more than {self.PEQ_COUNT} PEQ bands")
+        seen_indexes = set()
+        for band in bands:
+            self._validate_peq_index(band.index)
+            if band.index in seen_indexes:
+                raise ValueError(f"duplicate PEQ band index: {band.index}")
+            seen_indexes.add(band.index)
+
+        for band in bands:
+            self.write_peq_band(band.index, band)
             time.sleep(0.025)
-            self.enable_peq_band(index)
+            self.enable_peq_band(band.index)
             time.sleep(0.05)
         if save:
             self.save_eq_to_flash()

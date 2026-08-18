@@ -1,0 +1,13 @@
+{
+  "SchemaVersion": 1,
+  "RuntimeIdentifier": "win-x64",
+  "SourceSha256": "INDEPENDENT_AUDIT_REQUIRED",
+  "SourceInputCount": 0,
+  "SourcePresenceSentinelCount": 0,
+  "SourceContentInputCount": 0,
+  "RuntimeSha256": "INDEPENDENT_AUDIT_REQUIRED",
+  "RuntimeInputCount": 0,
+  "RunnerTreeInputCount": 0,
+  "WatchdogTreeInputCount": 0,
+  "MetadataInputCount": 0
+}

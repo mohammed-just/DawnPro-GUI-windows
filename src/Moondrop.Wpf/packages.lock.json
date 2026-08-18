@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "HidSharp": {
+        "type": "Transitive",
+        "resolved": "2.6.4",
+        "contentHash": "UcGvtnXFcatwHBXr+ei8GEXvg//wjGmDGQ6Xvb+7M4vHjURAhSLIJ+dSZv0BnAhQEpNlH8G4P7JxYnMH8Aph4g=="
+      },
+      "LibUsbDotNet": {
+        "type": "Transitive",
+        "resolved": "3.0.224",
+        "contentHash": "yASyHZ2km43UdC0GalQjOEAIqAZkKcuOJa+RMp37XFmHcTFd7Yl3TI+2rkuZqM1b/vlWZbvlp/yStBpVLoTcaw=="
+      },
+      "moondrop.core": {
+        "type": "Project"
+      },
+      "moondrop.hardware": {
+        "type": "Project",
+        "dependencies": {
+          "HidSharp": "[2.6.4, )",
+          "LibUsbDotNet": "[3.0.224, )",
+          "Moondrop.Core": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

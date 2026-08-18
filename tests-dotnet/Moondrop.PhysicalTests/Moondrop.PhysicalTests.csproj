@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+    <EnableMicrosoftTestingExtensionsCodeCoverage>false</EnableMicrosoftTestingExtensionsCodeCoverage>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.0.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Moondrop.Core\Moondrop.Core.csproj" />
+    <ProjectReference Include="..\..\src\Moondrop.Hardware\Moondrop.Hardware.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="OfflineTopologyProbeTests.cs" />
+    <Compile Include="..\Moondrop.Tests\AssertEx.cs" Link="AssertEx.cs" />
+    <Compile Include="..\Moondrop.Tests\DawnPro2PhysicalIntegrationTests.cs" Link="DawnPro2PhysicalIntegrationTests.cs" />
+    <Compile Include="..\Moondrop.Tests\MSTestSettings.cs" Link="MSTestSettings.cs" />
+    <Compile Include="..\Moondrop.Tests\PhysicalIntegrationSupport.cs" Link="PhysicalIntegrationSupport.cs" />
+    <Compile Include="..\Moondrop.PhysicalWatchdog\WatchdogPolicy.cs" Link="WatchdogPolicy.cs" />
+  </ItemGroup>
+</Project>

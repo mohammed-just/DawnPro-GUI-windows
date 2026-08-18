@@ -23,6 +23,7 @@ The app now prefers the DAWN PRO2 HID backend when that device is connected, the
 - Edit PEQ frequency, Q, gain, filter type, and enabled state
 - Generate PEQ coefficients compatible with Moondrop Custom EQ
 - Apply PEQ coefficients to the device
+- Import `.txt` EQ presets compatible with Moondrop Custom EQ and AutoEQ/Equalizer APO
 - Save EQ settings to flash
 - Save gain offsets to flash
 - Diagnostic window for HID and USB device enumeration
@@ -116,10 +117,26 @@ Current coverage focuses on:
 - PEQ coefficient generation
 - backend selection between DAWN PRO2 and original Dawn Pro
 
+## EQ Preset Import
+
+On the DAWN PRO2 screen, click **Import EQ File** and choose a `.txt` preset in
+the same format accepted by Moondrop Custom EQ:
+
+```text
+Preamp: -5.0 dB
+Filter 1: ON LSQ Fc 25 Hz Gain 6.0 dB Q 0.710
+Filter 2: ON PK Fc 160 Hz Gain -3.0 dB Q 0.550
+```
+
+The importer supports `PK`, `LS`/`LSQ`, `HS`/`HSQ`, `LP`/`LPQ`, and `HP`/`HPQ`
+filters, plus `OFF` bands and an optional preamp. It validates the entire file
+before applying it. Importing changes the live device state; click **Save EQ To
+Flash** separately to make the EQ persistent.
+
 ## Planned Future Features
 
 - Firmware update workflow with checksum validation and recovery warnings
-- Import/export EQ presets compatible with Moondrop Custom EQ
+- Export EQ presets compatible with Moondrop Custom EQ
 - Batch PEQ editing and preset comparison
 - Realtime graph preview for PEQ filters
 - Safer WSL setup helper for `usbipd-win`

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Moondrop.Core/Moondrop.Core.csproj" />
+    <Project Path="src/Moondrop.Hardware/Moondrop.Hardware.csproj" />
+    <Project Path="src/Moondrop.Wpf/Moondrop.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/tests-dotnet/">
+    <Project Path="tests-dotnet/Moondrop.Tests/Moondrop.Tests.csproj" />
+  </Folder>
+</Solution>

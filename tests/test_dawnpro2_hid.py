@@ -1,5 +1,7 @@
 from typing import List
 
+import pytest
+
 from device.dawnpro2_hid import DawnPro2Hid, DawnPro2PeqBand
 
 
@@ -34,6 +36,35 @@ def test_peaking_coefficients_are_packed_as_20_bytes() -> None:
     assert len(coefficients) == 20
     assert coefficients != [0] * 20
     assert all(0 <= byte <= 255 for byte in coefficients)
+
+
+def test_high_shelf_coefficients_match_web_app_32_bit_wrapping() -> None:
+    coefficients = DawnPro2Hid.generate_peq_coefficients(
+        1900, 4.5, 0.71, "HIGH_SHELF_2"
+    )
+
+    assert coefficients == [
+        0x1F,
+        0xB7,
+        0xA4,
+        0x68,
+        0x5D,
+        0xBD,
+        0x7B,
+        0x41,
+        0xDE,
+        0x38,
+        0x04,
+        0x57,
+        0x70,
+        0x9E,
+        0x40,
+        0x71,
+        0x36,
+        0xB4,
+        0x9A,
+        0xCD,
+    ]
 
 
 def test_read_peq_band_parses_moondrop_offsets() -> None:
@@ -100,3 +131,40 @@ def test_write_peq_band_uses_moondrop_payload_layout() -> None:
         0xFF,
         0xFF,
     ]
+
+
+def test_write_all_peq_bands_respects_imported_band_indexes(monkeypatch) -> None:
+    backend = make_backend_without_hardware()
+    written_indexes: List[int] = []
+    enabled_indexes: List[int] = []
+    monkeypatch.setattr("device.dawnpro2_hid.time.sleep", lambda _seconds: None)
+    backend.write_peq_band = (  # type: ignore[method-assign]
+        lambda index, _band: written_indexes.append(index)
+    )
+    backend.enable_peq_band = enabled_indexes.append  # type: ignore[method-assign]
+    bands = [
+        DawnPro2PeqBand(2, 1000, 1.0, 0.0, "PEAKING"),
+        DawnPro2PeqBand(7, 12000, 0.7, -2.0, "HIGH_SHELF_2"),
+    ]
+
+    backend.write_all_peq_bands(bands)
+
+    assert written_indexes == [2, 7]
+    assert enabled_indexes == [2, 7]
+
+
+def test_write_all_peq_bands_validates_every_index_before_writing() -> None:
+    backend = make_backend_without_hardware()
+    written_indexes: List[int] = []
+    backend.write_peq_band = (  # type: ignore[method-assign]
+        lambda index, _band: written_indexes.append(index)
+    )
+    bands = [
+        DawnPro2PeqBand(2, 1000, 1.0, 0.0, "PEAKING"),
+        DawnPro2PeqBand(2, 12000, 0.7, -2.0, "HIGH_SHELF_2"),
+    ]
+
+    with pytest.raises(ValueError, match="duplicate PEQ band index"):
+        backend.write_all_peq_bands(bands)
+
+    assert written_indexes == []

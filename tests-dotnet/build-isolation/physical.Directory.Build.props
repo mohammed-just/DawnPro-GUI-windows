@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup Condition="'$(PhysicalProtectedBuild)' == 'true'">
+    <PathMap>$(PhysicalProtectedSourceRoot)=/_/source,$(ArtifactsPath)=/_/artifacts</PathMap>
+  </PropertyGroup>
+
+  <Target Name="RequireProtectedPhysicalBuildPaths"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(PhysicalProtectedBuild)' == 'true'">
+    <Error Condition="'$(PhysicalProtectedSourceRoot)' == ''"
+           Text="PhysicalProtectedSourceRoot is required for the protected physical build." />
+    <Error Condition="'$(ArtifactsPath)' == ''"
+           Text="ArtifactsPath is required for the protected physical build." />
+    <Error Condition="'$(PathMap)' == ''"
+           Text="PathMap is required for deterministic protected physical build outputs." />
+  </Target>
+</Project>

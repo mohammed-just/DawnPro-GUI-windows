@@ -4,12 +4,14 @@ import logging
 import os
 import sys
 import tkinter as tk
-from tkinter import messagebox, ttk
+from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 from typing import Any, Iterable, List
 
 from device.backends import BackendSelection, select_backend
 from device.config import AppConfig, get_default_config_path, get_default_log_path
 from device.dawnpro2_hid import DawnPro2Hid, DawnPro2PeqBand
+from device.eq_presets import load_eq_preset
 
 
 LED_OPTIONS = ["On", "Temporarily Off", "Off"]
@@ -321,18 +323,21 @@ class DawnPro2GUI:
 
         button_frame = ttk.Frame(frame)
         button_frame.grid(row=4, column=0, sticky="ew")
-        _grid_columns(button_frame, (0, 1, 2, 3))
+        _grid_columns(button_frame, (0, 1, 2, 3, 4))
         ttk.Button(button_frame, text="Refresh", command=self.refresh_state).grid(
             row=0, column=0, sticky="ew", padx=(0, 6)
         )
-        ttk.Button(button_frame, text="Save EQ To Flash", command=self.save_eq_to_flash).grid(
+        ttk.Button(button_frame, text="Import EQ File", command=self.import_eq_file).grid(
             row=0, column=1, sticky="ew", padx=6
         )
-        ttk.Button(button_frame, text="Save Gains To Flash", command=self.save_gains_to_flash).grid(
+        ttk.Button(button_frame, text="Save EQ To Flash", command=self.save_eq_to_flash).grid(
             row=0, column=2, sticky="ew", padx=6
         )
+        ttk.Button(button_frame, text="Save Gains To Flash", command=self.save_gains_to_flash).grid(
+            row=0, column=3, sticky="ew", padx=6
+        )
         ttk.Button(button_frame, text="Diagnostics", command=self.show_diagnostics).grid(
-            row=0, column=3, sticky="ew", padx=(6, 0)
+            row=0, column=4, sticky="ew", padx=(6, 0)
         )
 
         ttk.Label(frame, textvariable=self.status_var, foreground="#1f4e79").grid(
@@ -551,6 +556,52 @@ class DawnPro2GUI:
             self.set_status(f"PEQ band {index} coefficients enabled")
         except Exception as error:
             show_error_dialog(f"Failed to enable PEQ band coefficients: {error}")
+
+    def import_eq_file(self) -> None:
+        filename = filedialog.askopenfilename(
+            parent=self.root,
+            title="Import Moondrop EQ preset",
+            filetypes=(
+                ("EQ text presets", "*.txt"),
+                ("All files", "*.*"),
+            ),
+        )
+        if not filename:
+            return
+
+        try:
+            preset = load_eq_preset(filename)
+        except (OSError, ValueError) as error:
+            show_error_dialog(f"Could not import EQ preset:\n\n{error}")
+            return
+
+        enabled_count = sum(band.enabled for band in preset.bands)
+        preamp_summary = (
+            f"\nPreamp: {preset.preamp:.2f} dB" if preset.preamp is not None else ""
+        )
+        should_apply = messagebox.askyesno(
+            "Import EQ preset",
+            f"Apply {len(preset.bands)} bands from {Path(filename).name}?\n"
+            f"Enabled bands: {enabled_count}{preamp_summary}\n\n"
+            "This applies the preset to the device now. It will not be saved to "
+            "flash until you click Save EQ To Flash.",
+            parent=self.root,
+        )
+        if not should_apply:
+            return
+
+        try:
+            if preset.preamp is not None:
+                self.device.write_pre_gain(preset.preamp)
+            self.device.write_all_peq_bands(preset.bands)
+            self.set_status(f"Imported EQ preset: {Path(filename).name}")
+            self.refresh_state()
+            show_success_dialog(
+                f"Imported {len(preset.bands)} EQ bands from {Path(filename).name}.\n\n"
+                "Use Save EQ To Flash when you are ready to make it persistent."
+            )
+        except Exception as error:
+            show_error_dialog(f"Failed to apply EQ preset to the device:\n\n{error}")
 
     def save_eq_to_flash(self) -> None:
         try:
