@@ -9,7 +9,7 @@ This implements the three-page design and screenshot audit for the current nativ
 | Navigation and device panel | Equalizer, Presets, Settings; compact device/firmware header; refresh next to device identity; no separate Device or About page. |
 | Control styling | Rounded inputs and dropdowns, correctly separated dropdown arrows, right-aligned switches, accent selection and primary actions, dark/light palettes. |
 | EQ preset identity | Actual preset selector and edited indicator; selection stays stable while editing; Save as preset near the picker. |
-| Chart | Frequency response title and visual legend; distinct target overlay; chart grows with window height; graph help explains gain scope. |
+| Chart | One combined response by default, draggable numbered markers, no persistent selected-band guide; optional per-band responses in Settings; title and visual legend; distinct target overlay; chart grows with window height. |
 | EQ bands | All eight bands and the complete editor fit at 1180×780; no nested editor scrolling; narrow windows use a single page scroll. |
 | Numeric formatting | Whole-Hz frequency grouping, one decimal for dB, concise Q, no negative zero; very small supported Q retains sufficient precision. |
 | Gain information | Grouped pre-gain/global gain, colored estimated headroom, recommended pre-gain, visible auto-protection state. |
@@ -37,5 +37,6 @@ This implements the three-page design and screenshot audit for the current nativ
 - Separate published-process workspace write/read smoke: import/export round trips, two local presets, remembered settings, edited bands, target, discard behavior, and disabled hardware actions without a connection.
 - Visual inspection of normal dark/light EQ, populated and empty Presets, Settings, and narrow layouts.
 - Self-contained Windows x64 publish and hardware-free apphost launch.
+- Windows runner compatibility: canonical temporary paths, SDK discovery for system/user installations, absolute paths for child-process fixtures, and safe disposal when the optional legacy USB library fails to initialize.
 
 No physical write suite or power-cycle verification was run for this redesign. No GitHub release is created by this change.

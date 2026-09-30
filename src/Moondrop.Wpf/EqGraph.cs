@@ -80,7 +80,7 @@ public static class EqGraphResponse
 
 public sealed class EqGraph : FrameworkElement
 {
-    public static readonly DependencyProperty IndividualCurvesProperty = DependencyProperty.Register(nameof(IndividualCurves), typeof(bool), typeof(EqGraph), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty IndividualCurvesProperty = DependencyProperty.Register(nameof(IndividualCurves), typeof(bool), typeof(EqGraph), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty ShowReferenceProperty = DependencyProperty.Register(nameof(ShowReference), typeof(bool), typeof(EqGraph), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty PreviewEnabledProperty = DependencyProperty.Register(nameof(PreviewEnabled), typeof(bool), typeof(EqGraph), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty ReferenceBandsProperty = DependencyProperty.Register(nameof(ReferenceBands), typeof(IEnumerable<BandViewModel>), typeof(EqGraph), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -402,8 +402,9 @@ public sealed class EqGraph : FrameworkElement
         }
         _individualResponsePen ??= CreateIndividualResponsePen(0.88, 1.1, selected: false);
         _selectedResponsePen ??= CreateIndividualResponsePen(1, 1.9, selected: true);
-        foreach (var band in _cachedBandResponses.Where(b => IndividualCurves || b.BandIndex == SelectedBandIndex))
-            dc.DrawGeometry(null, band.BandIndex == SelectedBandIndex ? _selectedResponsePen : _individualResponsePen, band.Geometry);
+        if (IndividualCurves)
+            foreach (var band in _cachedBandResponses)
+                dc.DrawGeometry(null, band.BandIndex == SelectedBandIndex ? _selectedResponsePen : _individualResponsePen, band.Geometry);
         _responsePen ??= CreateResponsePen();
         dc.DrawGeometry(null, _responsePen, _cachedResponse);
     }
@@ -420,9 +421,6 @@ public sealed class EqGraph : FrameworkElement
             var outline = selected ? CreateAccentPen(2.5) : new Pen(ThemeBrush("TextFillColorSecondaryBrush", SystemColors.WindowTextBrush), 1.2);
             if (selected)
             {
-                var guide = CreateAccentPen(1);
-                guide.DashStyle = DashStyles.Dot;
-                dc.DrawLine(guide, new Point(point.X, plot.Top), new Point(point.X, plot.Bottom));
                 dc.DrawEllipse(null, CreateAccentPen(2), point, 14, 14);
             }
             dc.DrawEllipse(fill, outline, point, 10, 10);

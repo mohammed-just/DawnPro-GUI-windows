@@ -112,6 +112,44 @@ public sealed class UiDesignRegressionTests
     }
 
     [TestMethod]
+    public void GraphRendersOnlyTheCombinedCurveUntilBandOverlaysAreRequested()
+    {
+        WpfTestHost.Run(() =>
+        {
+            using var model = MainViewModel.CreateDemo();
+            Assert.IsFalse(model.IndividualCurves);
+            var window = new MainWindow(model, LaunchOptions.Parse(["--demo"]));
+            try
+            {
+                window.Show(); window.UpdateLayout();
+                var graph = (EqGraph)window.FindName("EqGraphControl");
+                int CurveCount()
+                {
+                    window.UpdateLayout();
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                        (int)graph.ActualWidth, (int)graph.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(graph);
+                    return CurveDrawings(VisualTreeHelper.GetDrawing(graph)).Count();
+                }
+                Assert.AreEqual(1, CurveCount(), "The selected band must not add its own response curve in the clean view.");
+                model.IndividualCurves = true;
+                Assert.AreEqual(9, CurveCount(), "The optional setting shows eight band responses plus their sum.");
+                model.IndividualCurves = false;
+                Assert.AreEqual(1, CurveCount());
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    private static IEnumerable<GeometryDrawing> CurveDrawings(Drawing drawing)
+    {
+        if (drawing is GeometryDrawing { Geometry: StreamGeometry } curve) yield return curve;
+        if (drawing is DrawingGroup group)
+            foreach (var child in group.Children)
+                foreach (var curveChild in CurveDrawings(child)) yield return curveChild;
+    }
+
+    [TestMethod]
     public void ComboBoxSelectionAndArrowHaveSeparateSpaceAndSettingsUseSwitchTemplates()
     {
         WpfTestHost.Run(() =>

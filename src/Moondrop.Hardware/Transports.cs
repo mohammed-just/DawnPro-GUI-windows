@@ -167,7 +167,7 @@ public sealed class LibUsbLegacyTransport : ILegacyUsbTransport, IDisposable
 
     public static LibUsbLegacyTransport Open(AppConfig config, out string displayName)
     {
-        var context = new UsbContext();
+        var context = new SafeUsbContext();
         foreach (var candidate in CandidateIds(config))
         {
             var device = context.Find(new UsbDeviceFinder { Vid = candidate.Vid, Pid = candidate.Pid });

@@ -2,9 +2,12 @@
 
 Native Windows control app for Moondrop DAWN PRO2 and the original Dawn Pro. The current app uses WPF and .NET 10, with three pages: Equalizer, Presets, and Settings.
 
+![Equalizer workspace with the combined EQ curve](docs/images/eq.png)
+
 ## Equalizer
 
 - Interactive frequency-response graph, eight-band table, and selected-band editor.
+- The default graph shows one combined response with draggable numbered markers. Individual band response lines are an optional setting and are off by default.
 - Device identity, firmware, refresh, pre-gain, and global gain in the editing workspace.
 - Preset picker, edited indicator, undo/redo, reset, and local preset saving.
 - Imported or saved EQ curves can be selected as a separate target overlay.

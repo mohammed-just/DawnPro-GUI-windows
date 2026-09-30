@@ -85,7 +85,7 @@ public sealed record WorkspacePreferences
     public bool ConfirmFlash { get; init; } = true;
     public bool RememberEq { get; init; } = true;
     public bool AutoPreamp { get; init; }
-    public bool IndividualCurves { get; init; } = true;
+    public bool IndividualCurves { get; init; }
     public bool ReferenceCurve { get; init; } = true;
     public bool DebugLogging { get; init; }
     public bool AutoRefresh { get; init; } = true;

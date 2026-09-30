@@ -48,7 +48,7 @@ public static class DeviceDiagnostics
         builder.AppendLine("USB devices");
         try
         {
-            using var context = new UsbContext();
+            using var context = new SafeUsbContext();
             var devices = context.FindAll(_ => true).OrderBy(x => x.VendorId).ThenBy(x => x.ProductId).ToArray();
             if (devices.Length == 0)
             {

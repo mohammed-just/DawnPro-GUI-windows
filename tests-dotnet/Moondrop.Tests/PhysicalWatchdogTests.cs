@@ -218,7 +218,7 @@ public sealed class PhysicalWatchdogTests
         var launch = new PhysicalProcessLaunchPlan(
             Path.Combine(windows, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
             Path.GetTempPath(),
-            ["-NoProfile", "-Command", $"$p=Start-Process ping.exe -ArgumentList '127.0.0.1','-n','60' -PassThru; Set-Content -LiteralPath '{childPidFile}' -Value $p.Id; Wait-Process -Id $p.Id"],
+            ["-NoProfile", "-Command", $"$p=Start-Process '{Path.Combine(windows, "System32", "PING.EXE")}' -ArgumentList '127.0.0.1','-n','60' -PassThru; Set-Content -LiteralPath '{childPidFile}' -Value $p.Id; Wait-Process -Id $p.Id"],
             new[] { "SystemRoot", "WINDIR", "TEMP", "TMP" }.ToDictionary(
                 name => name,
                 name => Environment.GetEnvironmentVariable(name)!,
@@ -1413,7 +1413,7 @@ public sealed class PhysicalWatchdogTests
         var startInfo = PhysicalRunnerProcessStartInfo.Create(command);
         var expected = command.Environment.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
         foreach (var name in new[] { "SystemRoot", "WINDIR", "TEMP", "TMP" })
-            expected[name] = Environment.GetEnvironmentVariable(name)!;
+            expected[name] = Path.GetFullPath(Environment.GetEnvironmentVariable(name)!);
 
         CollectionAssert.AreEquivalent(expected.Keys.ToArray(), startInfo.Environment.Keys.ToArray());
         foreach (var pair in expected)
@@ -1440,7 +1440,7 @@ public sealed class PhysicalWatchdogTests
         var startInfo = PhysicalRunnerProcessStartInfo.Create(command);
         var expected = command.Environment.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
         foreach (var name in new[] { "SystemRoot", "WINDIR", "TEMP", "TMP" })
-            expected[name] = Environment.GetEnvironmentVariable(name)!;
+            expected[name] = Path.GetFullPath(Environment.GetEnvironmentVariable(name)!);
 
         CollectionAssert.AreEquivalent(expected.Keys.ToArray(), startInfo.Environment.Keys.ToArray());
         foreach (var pair in expected)
@@ -3152,7 +3152,8 @@ public sealed class PhysicalWatchdogTests
              directory = directory.Parent)
         {
             var candidate = Path.Combine(directory.FullName, "dotnet.exe");
-            var profile = directory.Parent?.FullName;
+            var profile = directory.Name.Equals(".dotnet", StringComparison.OrdinalIgnoreCase)
+                ? directory.Parent?.FullName : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             if (File.Exists(candidate) && profile is not null &&
                 Directory.Exists(Path.Combine(profile, ".nuget", "packages")))
                 return candidate;
