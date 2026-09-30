@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>TestCategory!=PhysicalHardwarePrepare&amp;TestCategory!=PhysicalHardware&amp;TestCategory!=PhysicalHardwareRecovery</TestCaseFilter>
+  </RunConfiguration>
+  <TestRunParameters>
+    <Parameter name="PhysicalHarnessEnabled" value="0" />
+  </TestRunParameters>
+</RunSettings>

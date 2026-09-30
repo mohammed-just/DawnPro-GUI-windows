@@ -1,3 +1,21 @@
+# Moondrop for Windows
+
+The current Windows app is the native WPF application in `src/Moondrop.Wpf`, with Equalizer, Presets, and Settings pages.
+
+See [Windows app features and build instructions](README-WINDOWS.md) and [the UI redesign notes](docs/ui-redesign.md). Edit locally, apply explicitly, then save to device memory separately. Hardware-dependent limitations are documented rather than represented as working controls.
+
+```powershell
+dotnet restore DawnPro.Wpf.slnx --locked-mode
+dotnet build DawnPro.Wpf.slnx -c Release --no-restore
+dotnet test DawnPro.Wpf.slnx -c Release --no-build --settings tests-dotnet/default.runsettings
+```
+
+Use the SDK pinned in `global.json`. The standard tests exclude physical hardware operations.
+
+## Legacy Python controller
+
+The sections below describe the earlier Python application. Its source remains available for the original backend and cross-platform development.
+
 # DawnPro-GUI Windows / DAWN PRO2
 
 Cross-platform Python desktop controller for Moondrop Dawn Pro devices, with first-class support for the **Moondrop DAWN PRO2** HID interface.

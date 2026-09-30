@@ -1,0 +1,13 @@
+{
+  "SchemaVersion": 1,
+  "RuntimeIdentifier": "win-x64",
+  "SourceSha256": "3255E778C3E84665CD665591B121D6A81FE5044DCFD74909E91E4C00F31DAE08",
+  "SourceInputCount": 176,
+  "SourcePresenceSentinelCount": 117,
+  "SourceContentInputCount": 59,
+  "RuntimeSha256": "5EF1C9B0449C52EC6895F4361E554D184FA5C84A7CB5135E901F1FBF500FC63F",
+  "RuntimeInputCount": 532,
+  "RunnerTreeInputCount": 331,
+  "WatchdogTreeInputCount": 192,
+  "MetadataInputCount": 9
+}

@@ -1,0 +1,30 @@
+name: Windows native app
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'tests-dotnet/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
+  pull_request:
+    paths: ['src/**', 'tests-dotnet/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore locked dependencies
+        run: dotnet restore DawnPro.Wpf.slnx --locked-mode
+      - name: Build
+        run: dotnet build DawnPro.Wpf.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
+      - name: Test without hardware
+        run: dotnet test DawnPro.Wpf.slnx -c Release --no-build --settings tests-dotnet/default.runsettings --logger trx
+      - name: Publish local portable build
+        run: dotnet publish src/Moondrop.Wpf/Moondrop.Wpf.csproj -c Release -r win-x64 --self-contained true -o artifacts/windows-preview -p:ContinuousIntegrationBuild=true
