@@ -179,6 +179,22 @@ public sealed class ProtocolRegressionTests
     }
 
     [TestMethod]
+    public void Pro2EmptyDisabledRawBandRemainsBitFaithfulAndActiveZeroFrequencyIsRejected()
+    {
+        var payload = new byte[DawnPro2Protocol.PayloadLength];
+        payload[4] = 6; payload[35] = DawnPro2Protocol.PeqIndex;
+        var raw = DawnPro2Protocol.ParseRawBandPayload(6, payload);
+        Assert.AreEqual(0, raw.Frequency); Assert.AreEqual(0, raw.QRaw);
+        CollectionAssert.AreEqual(payload.Skip(7).Take(27).ToArray(), DawnPro2Protocol.BuildWriteRawBandPayload(raw).Skip(7).Take(27).ToArray());
+        var editable = raw.ToPeqBand(); Assert.IsFalse(editable.Enabled);
+        var configuration = EqConfiguration.Flat(); configuration.Bands[6] = editable; configuration.Validate();
+        payload[33] = (byte)PeqFilterType.Peaking;
+        AssertEx.ThrowsException<InvalidOperationException>(() => DawnPro2Protocol.ParseRawBandPayload(6, payload));
+        payload[33] = (byte)PeqFilterType.Disabled; payload[31] = 1;
+        AssertEx.ThrowsException<InvalidOperationException>(() => DawnPro2Protocol.ParseRawBandPayload(6, payload));
+    }
+
+    [TestMethod]
     public void Pro2ParseBandPayloadRejectsShortPayload()
     {
         AssertEx.ThrowsException<ArgumentException>(() => DawnPro2Protocol.ParseBandPayload(0, new byte[33]));

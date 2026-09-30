@@ -2,7 +2,7 @@
 
 Native Windows control app for Moondrop DAWN PRO2 and the original Dawn Pro. The current app uses WPF and .NET 10, with three pages: Equalizer, Presets, and Settings.
 
-![Equalizer workspace with the combined EQ curve](docs/images/eq.png)
+![Equalizer workspace with the combined EQ curve](images/eq.png)
 
 ## Equalizer
 
@@ -10,7 +10,7 @@ Native Windows control app for Moondrop DAWN PRO2 and the original Dawn Pro. The
 - The default graph shows one combined response with draggable numbered markers. Individual band response lines are an optional setting and are off by default.
 - Device identity, firmware, refresh, pre-gain, and global gain in the editing workspace.
 - Preset picker, edited indicator, undo/redo, reset, and local preset saving.
-- Imported or saved EQ curves can be selected as a separate target overlay.
+- A flat 0 dB target is selected by default. Imported or saved EQ curves can also be selected as a separate target overlay; choosing None hides the target.
 - Discard edits, Apply changes, and Save to device are distinct actions.
 
 Editing and opening presets change a local workspace. **Apply changes** writes to the connected device and checks active values through readback. **Save to device** sends the available persistence commands separately. A completed save command does not establish that settings survive power loss; the UI preserves this distinction.
@@ -19,7 +19,9 @@ The target overlay compares EQ filter shapes. Acoustic targets such as Harman or
 
 ## Presets and settings
 
-Presets are horizontal rows with names, filter counts, Open, and a secondary menu for rename, duplicate, export, and local deletion. Import supports the validated Equalizer APO text subset and native JSON. Opening a preset does not write to hardware.
+Presets are horizontal rows with names, filter counts, Open, Apply, and a secondary menu for rename, duplicate, export, and local deletion. Import supports the validated Equalizer APO text subset and native JSON. Opening a preset does not write to hardware. Apply writes the chosen preset to the active device EQ, retains global gain, and checks readback without saving to device memory. Unstored draft edits are protected before switching presets.
+
+EQ 9 means the active EQ identifier reported by the DAC; it is separate from the eight filter bands and local presets. Click the EQ badge for help. Click the information button beside Save to device for the difference between applying, saving on the DAC, and saving a preset on this PC.
 
 Settings use Appearance, Behavior, EQ, and Advanced groups. Theme, Windows accent, reconnect behavior, remembered editing workspace, preamp protection, curve visibility, and logging are persisted locally. Diagnostics and log export are available here.
 
@@ -59,4 +61,4 @@ The app supports hardware-free captures, for example:
 
 Supported pages are `Eq`, `Presets`, and `Settings`. `--width=640 --height=620` exercises the narrow layout. `--workspace=<directory>` selects an isolated editing workspace; with `--demo`, it still disables hardware. Raster capture scaling is not a substitute for testing actual Windows display scaling.
 
-See [the redesign completion notes](docs/ui-redesign.md) for the changes and remaining hardware-dependent requirements.
+See [the redesign completion notes](ui-redesign.md) for the changes and remaining hardware-dependent requirements.

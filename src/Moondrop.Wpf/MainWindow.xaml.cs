@@ -77,7 +77,8 @@ public partial class MainWindow : Window
         var mode = width >= 1000 ? ShellLayoutMode.Wide : ResponsiveShell.Classify(width);
         CurrentLayoutMode = mode;
         NavigationColumn.Width = new GridLength(width >= 1000 ? 174 : 64);
-        BrandLabel.Visibility = width >= 1000 ? Visibility.Visible : Visibility.Collapsed;
+        DeviceLogo.Width = width >= 1000 ? 96 : 44;
+        DeviceLogo.Height = width >= 1000 ? 64 : 38;
 
         if (mode == ShellLayoutMode.Narrow)
         {
@@ -159,6 +160,9 @@ public partial class MainWindow : Window
         { model.SelectedPreset = preset; if (command.CanExecute(null)) command.Execute(null); }
     }
     private void PresetOpenClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) SelectPreset(sender, m.OpenPresetCommand); }
+    private void PresetApplyClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) SelectPreset(sender, m.ApplyPresetCommand); }
+    private void SaveHelpClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) MessageBox.Show(this, m.SaveToDeviceExplanation, "Save to device", MessageBoxButton.OK, MessageBoxImage.Information); }
+    private void ActiveEqHelpClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) MessageBox.Show(this, m.ActiveEqExplanation, m.ActiveEqLabel, MessageBoxButton.OK, MessageBoxImage.Information); }
     private void PresetRenameClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) SelectPreset(sender, m.RenamePresetCommand); }
     private void PresetDuplicateClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) SelectPreset(sender, m.DuplicatePresetCommand); }
     private void PresetExportClick(object sender, RoutedEventArgs e) { if (DataContext is MainViewModel m) SelectPreset(sender, m.ExportPresetCommand); }

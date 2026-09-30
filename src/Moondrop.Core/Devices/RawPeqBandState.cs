@@ -28,10 +28,11 @@ public sealed class RawPeqBandState
         var filter = FilterCode <= (byte)PeqFilterType.HighPass2
             ? (PeqFilterType)FilterCode
             : PeqFilterType.Unknown;
+        var emptyDisabled = filter == PeqFilterType.Disabled && Frequency == 0 && QRaw == 0 && GainRaw == 0;
         return new PeqBand(
             Index,
-            Frequency,
-            QRaw / 256.0,
+            emptyDisabled ? 1000 : Frequency,
+            emptyDisabled ? 1 : QRaw / 256.0,
             GainRaw / 256.0,
             filter,
             filter != PeqFilterType.Disabled,

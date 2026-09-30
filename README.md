@@ -2,7 +2,7 @@
 
 The current Windows app is the native WPF application in `src/Moondrop.Wpf`, with Equalizer, Presets, and Settings pages.
 
-See [Windows app features and build instructions](README-WINDOWS.md) and [the UI redesign notes](docs/ui-redesign.md). Edit locally, apply explicitly, then save to device memory separately. Hardware-dependent limitations are documented rather than represented as working controls.
+See [Windows app features and build instructions](docs/README-WINDOWS.md) and [the UI redesign notes](docs/ui-redesign.md). Edit locally, apply explicitly, then save to device memory separately. Hardware-dependent limitations are documented rather than represented as working controls.
 
 ```powershell
 dotnet restore DawnPro.Wpf.slnx --locked-mode

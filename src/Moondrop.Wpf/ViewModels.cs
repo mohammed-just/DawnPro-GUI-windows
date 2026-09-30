@@ -44,7 +44,8 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     private string _legacyGain = "Low", _legacyLed = "On", _legacyFilter = "Fast Roll-Off Low Latency";
     private ShellPage _page;
     private string _presetName = "Untitled";
-    private LocalPreset? _selectedPreset, _reference, _referenceChoice;
+    private static readonly LocalPreset FlatTarget = new(new Guid("00000000-0000-0000-0000-000000000002"), "Flat", "Built-in target", DateTimeOffset.MinValue, EqConfiguration.Flat());
+    private LocalPreset? _selectedPreset, _reference = FlatTarget, _referenceChoice;
     private static readonly LocalPreset NoReference = new(Guid.Empty, "None", "", DateTimeOffset.MinValue, EqConfiguration.Flat());
     private bool _previewEq = true;
     private WorkspacePreferences _preferences = new();
@@ -75,6 +76,7 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
         NewPresetCommand = new RelayCommand(NewPresetAsync, () => !IsBusy);
         SaveLocalCommand = new RelayCommand(() => { SaveLocalInteractive(); return Task.CompletedTask; }, () => !IsBusy);
         OpenPresetCommand = new RelayCommand(OpenSelectedPresetAsync, () => SelectedPreset is not null && !IsBusy);
+        ApplyPresetCommand = new RelayCommand(ApplySelectedPresetAsync, () => SelectedPreset is not null && CanApplyPreset);
         ExportPresetCommand = new RelayCommand(() => { ExportSelected(); return Task.CompletedTask; }, () => SelectedPreset is not null && !IsBusy);
         RenamePresetCommand = new RelayCommand(() => { RenameSelected(); return Task.CompletedTask; }, () => SelectedPreset is not null && !IsBusy);
         DuplicatePresetCommand = new RelayCommand(() => { DuplicateSelected(); return Task.CompletedTask; }, () => SelectedPreset is not null && !IsBusy);
@@ -140,6 +142,12 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     public bool HasInputErrors { get => _inputErrors; set { SetField(ref _inputErrors, value); ChangedState(); } }
     public bool CanApply => _connected && !IsBusy && !_uncertain && !HasInputErrors && (IsLegacy ? _legacyObserved is not null : _observed is not null) && IsDirty && (IsLegacy || ValidationMessage.Length == 0);
     public bool CanSave => _connected && !IsBusy && !IsLegacy && !_uncertain && !HasInputErrors && !IsDirty && (_eqPending || _gainPending);
+    public bool CanApplyPreset => _connected && IsPro2 && !IsBusy && !_uncertain && !HasInputErrors && _observed is not null;
+    public string PresetApplyHint => CanApplyPreset ? "Apply this preset to the active device EQ and check the result. Global gain is kept. This does not save to device memory." : !_connected ? "Connect a device to apply a preset." : IsLegacy ? "This device does not support parametric EQ presets." : HasInputErrors ? "Correct the marked numeric fields before applying a preset." : IsBusy ? "Wait for the current operation." : "Refresh the device before applying a preset.";
+    public string ActiveEqLabel => IsPro2 && _connected && _observed is not null ? $"EQ {_activeEq}" : "";
+    public bool HasActiveEq => ActiveEqLabel.Length > 0;
+    public string ActiveEqExplanation => $"EQ {_activeEq} is the active EQ identifier reported by your device. It is separate from the eight filter bands and the presets saved on this PC. Apply updates this active configuration; it does not switch to another device EQ slot.";
+    public string SaveToDeviceExplanation => "Apply changes updates the sound for the current device session. Save to device asks the DAC to store the applied EQ and gains in its own memory. Save as preset stores a file on this PC instead. Save-command completion does not verify persistence after unplugging.";
     public string ConnectionState => IsDemo ? "Demo · hardware disabled" : _connected ? "Connected" : "Disconnected · local workspace";
     public string HardwareActionHint => !_connected ? "Connect a device and Refresh to enable hardware actions." : _uncertain ? "Device state uncertain. Refresh to reconcile before retrying." : "Apply changes to RAM. Save flashes only the applied configuration.";
     public string DeviceSummary => $"{_deviceName} · {ConnectionState}";
@@ -180,7 +188,7 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     public string StateDescription => !_connected ? "Connect a device to apply your EQ." : _uncertain ? "Refresh the device before applying or saving again."
         : IsDirty ? "Your edits are only in the local preview." : _eqPending || _gainPending ? "Active on the device. Save to keep the applied changes."
         : _eqPersistence.StartsWith("Command completed") || _gainPersistence.StartsWith("Command completed") ? "Save requested; persistence after power loss is not verified." : "Current values read from the device; previous saves are not verified.";
-    public string SaveActionHint => !_connected ? "Connect a device to save." : IsLegacy ? "Permanent saving is unavailable for this device." : _uncertain ? "Refresh to check the device before saving." : IsDirty ? "Apply changes before saving to the device." : !CanSave ? "No newly applied changes to save." : "Save the applied EQ and gains to device memory.";
+    public string SaveActionHint => ( !_connected ? "Connect a device to save." : IsLegacy ? "Permanent saving is unavailable for this device." : _uncertain ? "Refresh to check the device before saving." : IsDirty ? "Apply changes before saving to the device." : !CanSave ? "No newly applied changes to save." : "Save the applied EQ and gains to device memory.") + "\n\n" + SaveToDeviceExplanation;
     public string ApplyActionHint => !_connected ? "Connect a device to apply changes." : _uncertain ? "Refresh to check the device before applying." : ValidationMessage.Length > 0 ? ValidationMessage : !IsDirty ? "No changes to apply." : "Apply your local edits and read back the device values.";
     public string TargetLabel => ReferenceName;
     public bool HasHeadroom => _peak + PreGain <= 0;
@@ -206,6 +214,7 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     public ICommand NewPresetCommand { get; }
     public ICommand SaveLocalCommand { get; }
     public ICommand OpenPresetCommand { get; }
+    public ICommand ApplyPresetCommand { get; }
     public ICommand ExportPresetCommand { get; }
     public ICommand RenamePresetCommand { get; }
     public ICommand DuplicatePresetCommand { get; }
@@ -242,10 +251,10 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     public string HeadroomText => $"Recommended pre-gain: {RecommendedPreGainText} · Headroom: {HeadroomValue}";
     public string HeadroomDetail => AutoPreamp && _peak > 18 ? "Required attenuation exceeds −18 dB: unresolved headroom." : "EQ-only estimate; excludes global gain. No automatic level increase.";
     public string ReferenceName => _reference?.Name ?? "None";
-    public IReadOnlyList<LocalPreset> ReferenceOptions => new[] { NoReference }.Concat(LocalPresets.Select(p => p.Id == _reference?.Id ? _reference : p)).Concat(_reference is not null && LocalPresets.All(p => p.Id != _reference.Id) ? new[] { _reference } : Array.Empty<LocalPreset>()).ToArray();
-    public Guid ReferenceId { get => _reference?.Id ?? Guid.Empty; set { if (value == ReferenceId) return; ReferencePreset = value == Guid.Empty ? null : LocalPresets.FirstOrDefault(p => p.Id == value); } }
+    public IReadOnlyList<LocalPreset> ReferenceOptions => new[] { NoReference, FlatTarget }.Concat(LocalPresets.Select(p => p.Id == _reference?.Id ? _reference : p)).Concat(_reference is not null && _reference.Id != FlatTarget.Id && LocalPresets.All(p => p.Id != _reference.Id) ? new[] { _reference } : Array.Empty<LocalPreset>()).ToArray();
+    public Guid ReferenceId { get => _reference?.Id ?? Guid.Empty; set { if (value == ReferenceId) return; ReferencePreset = value == Guid.Empty ? null : value == FlatTarget.Id ? FlatTarget : LocalPresets.FirstOrDefault(p => p.Id == value); } }
     public LocalPreset? ReferenceChoice { get => _referenceChoice; set { if (SetField(ref _referenceChoice, value)) ReferencePreset = value; } }
-    public LocalPreset? ReferencePreset { get => _reference; set { _reference = value is null ? null : value with { Eq = value.Eq.Copy() }; if (value is null) { _referenceChoice = null; OnPropertyChanged(nameof(ReferenceChoice)); } OnPropertyChanged(); OnPropertyChanged(nameof(ReferenceName)); OnPropertyChanged(nameof(ReferenceId)); OnPropertyChanged(nameof(ReferenceOptions)); OnPropertyChanged(nameof(ReferenceBands)); OnPropertyChanged(nameof(TargetLabel)); Persist(); } }
+    public LocalPreset? ReferencePreset { get => _reference; set { _reference = value is null ? null : value with { Eq = value.Eq.Copy() }; _preferences = _preferences with { NoTarget = value is null }; if (value is null) { _referenceChoice = null; OnPropertyChanged(nameof(ReferenceChoice)); } OnPropertyChanged(); OnPropertyChanged(nameof(ReferenceName)); OnPropertyChanged(nameof(ReferenceId)); OnPropertyChanged(nameof(ReferenceOptions)); OnPropertyChanged(nameof(ReferenceBands)); OnPropertyChanged(nameof(TargetLabel)); Persist(); } }
     public IReadOnlyList<BandViewModel> ReferenceBands => (_reference?.Eq.Bands ?? []).Select(b => new BandViewModel(b.Index, b.Frequency, b.Q, b.Gain, b.FilterType, b.Enabled)).ToArray();
     public string ThemeSelection { get => _preferences.Theme; set { _preferences = _preferences with { Theme = value }; PreferenceChanged(nameof(ThemeSelection), true); } }
     public bool SystemAccent { get => _preferences.SystemAccent; set { _preferences = _preferences with { SystemAccent = value }; PreferenceChanged(nameof(SystemAccent), true); } }
@@ -298,12 +307,12 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
     private void PreferenceChanged(string property, bool appearance = false) { OnPropertyChanged(property); Persist(); if (appearance) AppearanceChanged?.Invoke(); }
     private void ChangedState()
     {
-        foreach (var property in new[] { nameof(IsDirty), nameof(CanApply), nameof(CanSave), nameof(IsEditable), nameof(IsHardwareConnected), nameof(IsLegacy), nameof(IsPro2), nameof(LocalSaveLabel), nameof(ConnectionState), nameof(DeviceSummary), nameof(DraftState), nameof(PersistenceSummary), nameof(HardwareActionHint), nameof(ActiveConfiguration), nameof(ValidationMessage), nameof(StateTitle), nameof(StateDescription), nameof(SaveActionHint), nameof(ApplyActionHint), nameof(IsPresetEdited), nameof(CanDiscard), nameof(EditingPresetId) }) OnPropertyChanged(property);
+        foreach (var property in new[] { nameof(IsDirty), nameof(CanApply), nameof(CanSave), nameof(CanApplyPreset), nameof(PresetApplyHint), nameof(ActiveEqLabel), nameof(HasActiveEq), nameof(ActiveEqExplanation), nameof(IsEditable), nameof(IsHardwareConnected), nameof(IsLegacy), nameof(IsPro2), nameof(LocalSaveLabel), nameof(ConnectionState), nameof(DeviceSummary), nameof(DraftState), nameof(PersistenceSummary), nameof(HardwareActionHint), nameof(ActiveConfiguration), nameof(ValidationMessage), nameof(StateTitle), nameof(StateDescription), nameof(SaveActionHint), nameof(ApplyActionHint), nameof(IsPresetEdited), nameof(CanDiscard), nameof(EditingPresetId) }) OnPropertyChanged(property);
         foreach (var band in Bands) band.IsEditable = !IsBusy; RaiseCommands();
     }
     private void RaiseCommands()
     {
-        foreach (var command in new[] { RefreshCommand, ApplyAllCommand, SaveEqCommand, ImportEqCommand, NewPresetCommand, SaveLocalCommand, OpenPresetCommand, OpenObservedCommand, ExportPresetCommand, RenamePresetCommand, DuplicatePresetCommand, DeletePresetCommand, ResetBandCommand, ResetEqCommand, DiscardCommand, UndoCommand, RedoCommand, ImportTargetCommand }) (command as RelayCommand)?.RaiseCanExecuteChanged();
+        foreach (var command in new[] { RefreshCommand, ApplyAllCommand, SaveEqCommand, ImportEqCommand, NewPresetCommand, SaveLocalCommand, OpenPresetCommand, ApplyPresetCommand, OpenObservedCommand, ExportPresetCommand, RenamePresetCommand, DuplicatePresetCommand, DeletePresetCommand, ResetBandCommand, ResetEqCommand, DiscardCommand, UndoCommand, RedoCommand, ImportTargetCommand }) (command as RelayCommand)?.RaiseCanExecuteChanged();
     }
     public async Task RefreshAsync()
     {
@@ -458,6 +467,18 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
         catch (Exception ex) { ShowError("Local save failed", ex); return false; }
     }
     private Task OpenSelectedPresetAsync() { if (SelectedPreset is { } p && ProtectLocalEdits()) OpenLocalPreset(p); return Task.CompletedTask; }
+    public async Task ApplySelectedPresetAsync()
+    {
+        if (!CanApplyPreset || SelectedPreset is not { } preset) return;
+        try { preset.Eq.Validate(); }
+        catch (Exception ex) { ShowError("Preset could not be applied", ex); return; }
+        if (!ProtectLocalEdits()) return;
+        var page = SelectedPage;
+        OpenLocalPreset(preset);
+        SelectedPage = page;
+        if (CanApply) await ApplyAsync();
+        else Status = "This preset already matches the active device EQ. Nothing was written.";
+    }
     private Task NewPresetAsync()
     {
         if (!ProtectLocalEdits()) return Task.CompletedTask;
@@ -504,7 +525,7 @@ public sealed class MainViewModel : NotifyObject, IDisposable, IAsyncDisposable
         try
         {
             var file = WorkspaceStorage.Load(_workspacePath); _preferences = file.Preferences;
-            foreach (var p in file.Presets) LocalPresets.Add(p); _reference = file.Reference;
+            foreach (var p in file.Presets) LocalPresets.Add(p); _reference = file.Reference ?? (_preferences.NoTarget ? null : FlatTarget);
             if (RememberEq && file.Draft is not null && file.LocalBaseline is { } baseline) { _localBaseline = baseline.Copy(); _restoredBaseline = true; }
             if (RememberEq && file.Draft is { Bands.Length: 8 } draft) { _suppress = true; foreach (var b in draft.Bands) Bands[b.Index].Load(b); _preGain = draft.PreGain; _globalGain = draft.GlobalGain; _suppress = false; _presetName = file.DraftName; _legacyVolume = file.LegacyVolume; _legacyGain = file.LegacyGain; _legacyLed = file.LegacyLed; _legacyFilter = file.LegacyFilter; _editingPresetId = LocalPresets.FirstOrDefault(p => p.Name == _presetName)?.Id ?? Guid.Empty; }
         }

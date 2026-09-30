@@ -13,6 +13,66 @@ public sealed class WorkspaceTests
     private static MainViewModel Model(WorkspaceDevice device) => MainViewModel.CreateHardware(new(new BackendSelection<IMoondropDevice>(DeviceKind.DawnPro2, device.DisplayName, device, "")), new(), false);
 
     [TestMethod]
+    public async Task ApplyingFromPresetsKeepsPageAndGlobalGainChecksReadbackAndNeverFlashes()
+    {
+        var device = new WorkspaceDevice { State = EqConfiguration.Flat() with { GlobalGain = -2 } };
+        await using var model = Model(device); await model.RefreshAsync(); model.Discard();
+        model.SaveLocal("Current device");
+        var eq = EqConfiguration.Flat() with { PreGain = -3, GlobalGain = 7 };
+        eq.Bands[0] = new(0, 105, 0.71, 3, PeqFilterType.LowShelf2);
+        var preset = new LocalPreset(Guid.NewGuid(), "Direct apply", "Test", DateTimeOffset.UtcNow, eq);
+        model.LocalPresets.Add(preset); model.SelectedPreset = preset; model.SelectedPage = ShellPage.Presets;
+        Assert.IsTrue(model.ApplyPresetCommand.CanExecute(null));
+        await model.ApplySelectedPresetAsync();
+        Assert.AreEqual(ShellPage.Presets, model.SelectedPage);
+        Assert.AreEqual(-2, device.State.GlobalGain); Assert.AreEqual(-3, device.State.PreGain);
+        Assert.AreEqual(3, device.State.Bands[0].Gain); Assert.IsFalse(model.IsDirty);
+        Assert.AreEqual(0, device.FlashWrites); Assert.IsTrue(model.CanSave);
+        StringAssert.Contains(model.ActiveConfiguration, "Direct apply");
+        var writes = device.Writes; await model.ApplySelectedPresetAsync(); Assert.AreEqual(writes, device.Writes);
+        Assert.AreEqual("EQ 9", model.ActiveEqLabel);
+    }
+
+    [TestMethod]
+    public async Task ApplyingPresetReadbackFailureKeepsDraftAndRequiresRefresh()
+    {
+        var device = new WorkspaceDevice { Mismatch = true };
+        await using var model = Model(device); await model.RefreshAsync();
+        var eq = EqConfiguration.Flat(); eq.Bands[0] = new(0, 1000, 1, 3, PeqFilterType.Peaking);
+        model.SelectedPreset = new(Guid.NewGuid(), "Failed readback", "Test", DateTimeOffset.UtcNow, eq);
+        await model.ApplySelectedPresetAsync();
+        Assert.AreEqual(3, model.Bands[0].Gain); Assert.IsTrue(model.Banner.IsVisible);
+        Assert.IsFalse(model.CanApplyPreset); Assert.IsFalse(model.CanSave); Assert.AreEqual(0, device.FlashWrites);
+    }
+
+    [TestMethod]
+    public void DefaultFlatTargetAndExplicitNoneSurviveRestartWithoutChangingEq()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (var model = MainViewModel.CreateOffline(directory))
+            {
+                Assert.AreEqual("Flat", model.ReferenceName); Assert.HasCount(8, model.ReferenceBands);
+                Assert.IsTrue(model.ReferenceBands.All(b => !b.Enabled && b.Gain == 0));
+                var before = model.Capture(); var flatId = model.ReferenceId;
+                model.ReferenceId = Guid.Empty; Assert.AreEqual("None", model.ReferenceName);
+                model.ReferenceId = flatId; Assert.AreEqual("Flat", model.ReferenceName);
+                Assert.HasCount(1, model.ReferenceOptions.Where(p => p.Id == flatId).ToArray());
+                Assert.IsTrue(before.Same(model.Capture())); model.Persist();
+            }
+            using (var flat = MainViewModel.CreateOffline(directory))
+            {
+                Assert.AreEqual("Flat", flat.ReferenceName); flat.ReferenceId = Guid.Empty;
+            }
+            using var none = MainViewModel.CreateOffline(directory);
+            Assert.AreEqual("None", none.ReferenceName); Assert.IsEmpty(none.ReferenceBands);
+            Assert.IsFalse(none.CanApplyPreset);
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
+    [TestMethod]
     public async Task EditingNavigationAndRefreshPreserveDraftWithoutWrites()
     {
         var device = new WorkspaceDevice(); await using var model = Model(device);

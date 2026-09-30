@@ -970,6 +970,21 @@ public sealed class HardwareBehaviorTests
         return response;
     }
 
+    [TestMethod]
+    public async Task EmptyDisabledBandReadbackProducesEditableDefaultsWithoutPoisoningTransport()
+    {
+        var payload = new byte[DawnPro2Protocol.PayloadLength];
+        payload[4] = 6; payload[35] = DawnPro2Protocol.PeqIndex;
+        var transport = new FakeHidTransport();
+        transport.EnqueueResponse([DawnPro2Protocol.ReportId, .. payload]);
+        var device = new DawnPro2Device(transport, new FakeDelay());
+        var band = await device.ReadBandAsync(6);
+        Assert.IsFalse(band.Enabled); Assert.AreEqual(1000, band.Frequency); Assert.AreEqual(1, band.Q);
+        Assert.IsFalse(transport.Disposed);
+        await device.WriteBandAsync(band with { FilterType = PeqFilterType.Peaking, Enabled = true });
+        Assert.IsFalse(transport.Disposed);
+    }
+
     private static byte[] ValidRawBandPayload(int index)
     {
         var payload = new byte[DawnPro2Protocol.PayloadLength];

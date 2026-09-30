@@ -97,11 +97,11 @@ public sealed class UiDesignRegressionTests
             try
             {
                 window.Show(); window.UpdateLayout();
-                Assert.AreEqual(Visibility.Collapsed, ((TextBlock)window.FindName("BrandLabel")).Visibility);
+                Assert.AreEqual(44, ((Image)window.FindName("DeviceLogo")).ActualWidth);
                 var nav = Descendants<ListBox>(window).First(x => x.Items.OfType<ListBoxItem>().Any());
                 foreach (var row in nav.Items.OfType<ListBoxItem>())
                 {
-                    var icon = Descendants<TextBlock>(row).First();
+                    var icon = Descendants<Viewbox>(row).First();
                     var bounds = icon.TransformToAncestor(row).TransformBounds(new Rect(icon.RenderSize));
                     Assert.IsGreaterThanOrEqualTo(0, bounds.Left);
                     Assert.IsLessThanOrEqualTo(row.ActualWidth, bounds.Right, "Navigation icon must fit within the row.");
@@ -131,6 +131,8 @@ public sealed class UiDesignRegressionTests
                     bitmap.Render(graph);
                     return CurveDrawings(VisualTreeHelper.GetDrawing(graph)).Count();
                 }
+                Assert.AreEqual(2, CurveCount(), "The default view has a combined curve and the flat target.");
+                model.ShowReferenceCurve = false;
                 Assert.AreEqual(1, CurveCount(), "The selected band must not add its own response curve in the clean view.");
                 model.IndividualCurves = true;
                 Assert.AreEqual(9, CurveCount(), "The optional setting shows eight band responses plus their sum.");

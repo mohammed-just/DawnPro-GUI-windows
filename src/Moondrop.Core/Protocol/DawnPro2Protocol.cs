@@ -233,6 +233,10 @@ public static class DawnPro2Protocol
         ValidatePeqIndex(state.Index);
         if (state.NormalizedPayload.Count != PayloadLength)
             throw new InvalidOperationException($"Raw band {state.Index} must retain exactly {PayloadLength} normalized bytes.");
+        // An unused slot can report empty parameters. Preserve the captured bytes for raw
+        // restoration; this exception never permits a zero-frequency active filter.
+        if (state.FilterCode == (byte)PeqFilterType.Disabled && state.Frequency == 0 && state.QRaw == 0 && state.GainRaw == 0)
+            return;
         if (state.Frequency is < 20 or > 20000)
             throw new InvalidOperationException($"Raw band {state.Index} frequency {state.Frequency} is outside 20..20000 Hz.");
         if (state.QRaw <= 0 || state.QRaw > 127 * 256)

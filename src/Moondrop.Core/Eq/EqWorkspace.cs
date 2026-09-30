@@ -87,6 +87,7 @@ public sealed record WorkspacePreferences
     public bool AutoPreamp { get; init; }
     public bool IndividualCurves { get; init; }
     public bool ReferenceCurve { get; init; } = true;
+    public bool NoTarget { get; init; }
     public bool DebugLogging { get; init; }
     public bool AutoRefresh { get; init; } = true;
 }
