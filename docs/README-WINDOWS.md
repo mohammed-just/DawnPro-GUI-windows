@@ -2,6 +2,8 @@
 
 Native Windows control app for Moondrop DAWN PRO2 and the original Dawn Pro. The current app uses WPF and .NET 10, with three pages: Equalizer, Presets, and Settings.
 
+Developed and maintained by **[mohammed-just](https://github.com/mohammed-just)**. Based on the original [shaypower/DawnPro-GUI](https://github.com/shaypower/DawnPro-GUI) project.
+
 ![Equalizer workspace with the combined EQ curve](images/eq.png)
 
 ## Equalizer

@@ -12,6 +12,13 @@ dotnet test DawnPro.Wpf.slnx -c Release --no-build --settings tests-dotnet/defau
 
 Use the SDK pinned in `global.json`. The standard tests exclude physical hardware operations.
 
+## Contributors
+
+- **[mohammed-just](https://github.com/mohammed-just)** — developer and maintainer of this Windows fork, DAWN PRO2 support, and the native WPF app, including the EQ editor, presets, settings, and UI redesign.
+- **[Shay Power (shaypower)](https://github.com/shaypower)** — creator of the original [DawnPro-GUI](https://github.com/shaypower/DawnPro-GUI) project and original Dawn Pro backend.
+
+See [all code contributors](https://github.com/mohammed-just/DawnPro-GUI-windows/graphs/contributors) for the complete contribution history.
+
 ## Legacy Python controller
 
 The sections below describe the earlier Python application. Its source remains available for the original backend and cross-platform development.
@@ -146,5 +153,6 @@ Current coverage focuses on:
 
 ## Credits
 
+- Windows fork, DAWN PRO2 support, and native WPF app: [mohammed-just](https://github.com/mohammed-just)
 - Original project: [shaypower/DawnPro-GUI](https://github.com/shaypower/DawnPro-GUI)
 - DAWN PRO2 protocol reference: [Moondrop Custom EQ](https://app.moondroplab.com/)
