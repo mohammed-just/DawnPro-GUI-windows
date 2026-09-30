@@ -214,11 +214,10 @@ public sealed class PhysicalWatchdogTests
     public async Task CandidateTopologyCancellationKillsAndAwaitsTheEntireStartedProcessTree()
     {
         var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        var childPidFile = Path.Combine(Path.GetTempPath(), $"moondrop-child-pid-{Guid.NewGuid():N}.txt");
         var launch = new PhysicalProcessLaunchPlan(
-            Path.Combine(windows, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+            Path.Combine(windows, "System32", "cmd.exe"),
             Path.GetTempPath(),
-            ["-NoProfile", "-Command", $"$p=Start-Process '{Path.Combine(windows, "System32", "PING.EXE")}' -ArgumentList '127.0.0.1','-n','60' -PassThru; Set-Content -LiteralPath '{childPidFile}' -Value $p.Id; Wait-Process -Id $p.Id"],
+            ["/d", "/c", $"{Path.Combine(windows, "System32", "PING.EXE")} 127.0.0.1 -n 60"],
             new[] { "SystemRoot", "WINDIR", "TEMP", "TMP" }.ToDictionary(
                 name => name,
                 name => Environment.GetEnvironmentVariable(name)!,
@@ -228,38 +227,39 @@ public sealed class PhysicalWatchdogTests
         using var cancellation = new CancellationTokenSource();
         var startedPid = 0;
         var childPid = 0;
+        var identities = new WindowsPhysicalProcessIdentityProvider();
 
-        try
-        {
-            await AssertEx.ThrowsExceptionAsync<OperationCanceledException>(() =>
-            PhysicalProcessLauncher.RunToExitInKillOnCloseJobAsync(
-                launch,
-                cancellation.Token,
-                processId =>
+        await AssertEx.ThrowsExceptionAsync<OperationCanceledException>(() =>
+        PhysicalProcessLauncher.RunToExitInKillOnCloseJobAsync(
+            launch,
+            cancellation.Token,
+            processId =>
+            {
+                startedPid = processId;
+                Assert.IsTrue(SpinWait.SpinUntil(() =>
                 {
-                    startedPid = processId;
-                    Assert.IsTrue(SpinWait.SpinUntil(() =>
+                    foreach (var candidate in Process.GetProcessesByName("ping"))
                     {
-                        try
+                        using (candidate)
                         {
-                            childPid = int.Parse(File.ReadAllText(childPidFile), System.Globalization.CultureInfo.InvariantCulture);
-                            return true;
+                            try
+                            {
+                                if (identities.Get(candidate.Id).ParentProcessId != startedPid) continue;
+                                childPid = candidate.Id;
+                                return true;
+                            }
+                            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { }
                         }
-                        catch (IOException) { return false; }
-                    }, TimeSpan.FromSeconds(10)));
-                    cancellation.Cancel();
-                }));
+                    }
+                    return false;
+                }, TimeSpan.FromSeconds(10)));
+                cancellation.Cancel();
+            }));
 
-            Assert.AreNotEqual(0, startedPid);
-            Assert.AreNotEqual(0, childPid);
-            AssertEx.ThrowsException<ArgumentException>(() => Process.GetProcessById(startedPid));
-            AssertEx.ThrowsException<ArgumentException>(() => Process.GetProcessById(childPid));
-        }
-        finally
-        {
-            if (File.Exists(childPidFile))
-                File.Delete(childPidFile);
-        }
+        Assert.AreNotEqual(0, startedPid);
+        Assert.AreNotEqual(0, childPid);
+        AssertEx.ThrowsException<ArgumentException>(() => Process.GetProcessById(startedPid));
+        AssertEx.ThrowsException<ArgumentException>(() => Process.GetProcessById(childPid));
     }
 
     [TestMethod]
