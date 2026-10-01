@@ -1,0 +1,22 @@
+Dependency license notices included with the Windows release packages.
+The application itself is covered by the repository's root LICENSE.
+
+.NET runtime notices: Microsoft .NET / Windows Desktop 10.0.12
+Copied without modification from the restored official runtime NuGet packages:
+Microsoft.NETCore.App.Runtime.win-x64 10.0.12 (LICENSE.TXT, THIRD-PARTY-NOTICES.TXT)
+Microsoft.WindowsDesktop.App.Runtime.win-x64 10.0.12 (LICENSE)
+https://github.com/dotnet/runtime
+https://github.com/dotnet/wpf
+
+HidSharp 2.6.4: James F. Bellinger
+LICENSE.txt copied without modification from the restored NuGet package.
+https://www.nuget.org/packages/HidSharp/2.6.4
+https://software.seekye.com/hidsharp
+
+LibUsbDotNet 3.0.224: Travis Robinson, Stevie-O, Quamotion
+NuGet license expression: LGPL-3.0-or-later.
+License copied without modification from the package's exact source commit:
+https://github.com/LibUsbDotNet/LibUsbDotNet/tree/a89bc81569327840e98a2c30207e5b74bbc97b3a
+https://www.nuget.org/packages/LibUsbDotNet/3.0.224
+The GPL v3 text incorporated by LGPL v3 is also included without modification:
+https://www.gnu.org/licenses/gpl-3.0.txt

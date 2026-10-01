@@ -29,7 +29,7 @@ Settings use Appearance, Behavior, EQ, and Advanced groups. Theme, Windows accen
 
 ## Build on Windows
 
-Install the .NET SDK version pinned in `global.json` (10.0.302), then run from the repository root:
+Install the .NET SDK version pinned in `global.json` (10.0.401), then run from the repository root:
 
 ```powershell
 dotnet restore DawnPro.Wpf.slnx --locked-mode
@@ -45,13 +45,29 @@ Run without hardware:
 .\src\Moondrop.Wpf\bin\Release\net10.0-windows\Moondrop.Wpf.exe --demo
 ```
 
-Build a portable x64 app with its runtime included:
+## Windows release packages
+
+For downloads, choose **Portable** (recommended; .NET included) or **Slim** (smaller; requires .NET 10 Desktop Runtime x64). Both contain the same app, with one executable and license/readme text instead of hundreds of loose DLLs. Extract before launching `Moondrop.exe`.
+
+If Slim lacks a compatible runtime, Microsoft's native Windows launch prompt opens its download page. Run the Desktop Runtime installer and reopen Moondrop. The plain .NET Runtime is insufficient; the SDK is not needed. This prompt does not silently install the runtime or restart the app.
+
+Portable keeps the existing per-user settings location. Its native runtime libraries are extracted into .NET's temporary cache; they do not populate the application folder.
+
+After the restore/build/test commands above, create both packages from the repository root:
 
 ```powershell
-dotnet publish src/Moondrop.Wpf/Moondrop.Wpf.csproj -c Release -r win-x64 --self-contained true -o artifacts/windows-preview -p:ContinuousIntegrationBuild=true
+.\scripts\Build-WindowsRelease.ps1
 ```
 
-Run `artifacts/windows-preview/Moondrop.Wpf.exe`. Keep the entire published directory together. This build command creates local files; it does not create a GitHub release.
+The script uses `Portable.pubxml` and `Slim.pubxml`, builds each in a separate fresh source/output tree with locked dependencies, and verifies preset persistence, all three page captures, the Slim missing-runtime error, and ZIP executable checksums. All app checks disable hardware.
+
+Results are under `artifacts/releases/v<version>`: two named ZIPs, `SHA256SUMS.txt`, and `BUILD-VERIFICATION.json`. Each ZIP contains `Moondrop.exe`, `README.txt`, `LICENSE`, and the `licenses` folder. Build/verification directories are excluded from the ZIPs. Existing output directories are rejected to prevent stale output mixing; select a fresh `-OutputDirectory` for another run. An alternate SDK executable can be selected with `-DotnetPath`.
+
+Portable includes .NET 10.0.12, pinned alongside SDK 10.0.401. Slim retains the normal .NET 10 patch roll-forward and can use an installed compatible Desktop Runtime. WPF trimming is disabled. Compression is enabled only for Portable because .NET does not support it for framework-dependent single-file apps.
+
+Update `global.json`, the Portable runtime pin, and .NET license notices together when taking a newer runtime patch. Re-evaluate package locks intentionally, then verify locked restore and both packages. Bundled runtime fixes require a new Portable build; Slim receives fixes from its installed runtime updates.
+
+This script creates local packages; it does not commit, push, tag, or publish a GitHub release. Physical testing remains subject to the separate NO-GO/approval policy in [BUILD-DOTNET.md](BUILD-DOTNET.md).
 
 ## UI verification
 

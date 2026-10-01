@@ -2,6 +2,19 @@
 
 The current Windows app is the native WPF application in `src/Moondrop.Wpf`, with Equalizer, Presets, and Settings pages.
 
+## Windows downloads
+
+Get [the latest Windows release](https://github.com/mohammed-just/DawnPro-GUI-windows/releases/latest). Each download contains one `Moondrop.exe`, a short README, and license notices; no loose application/runtime DLLs.
+
+| Download | Choose this when | .NET requirement |
+| --- | --- | --- |
+| **Portable — recommended** | You want to extract and run without installing .NET | .NET included |
+| **Slim** | You want a smaller download and use the shared runtime | .NET 10 Desktop Runtime **x64** |
+
+Extract the ZIP before launching `Moondrop.exe`. If Slim cannot find a compatible runtime, Microsoft's Windows launch prompt offers its download page. Install the **Desktop Runtime**, then reopen the app. The plain .NET Runtime is insufficient; the SDK is not needed. Nothing is silently installed.
+
+Both downloads provide the same app. Portable means no .NET installation; presets/settings still use the existing per-user storage. Its native runtime libraries use .NET's temporary extraction cache, keeping the application folder clean.
+
 See [Windows app features and build instructions](docs/README-WINDOWS.md) and [the UI redesign notes](docs/ui-redesign.md). Edit locally, apply explicitly, then save to device memory separately. Hardware-dependent limitations are documented rather than represented as working controls.
 
 ```powershell
@@ -11,6 +24,8 @@ dotnet test DawnPro.Wpf.slnx -c Release --no-build --settings tests-dotnet/defau
 ```
 
 Use the SDK pinned in `global.json`. The standard tests exclude physical hardware operations.
+
+To create and verify both release ZIPs locally, run `.\scripts\Build-WindowsRelease.ps1` from the repository root. See [the release packaging instructions](docs/README-WINDOWS.md#windows-release-packages). The script does not commit, push, or publish a GitHub release.
 
 ## Contributors
 

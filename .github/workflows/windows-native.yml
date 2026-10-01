@@ -3,9 +3,9 @@ name: Windows native app
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'tests-dotnet/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
+    paths: ['src/**', 'tests-dotnet/**', 'scripts/**', 'docs/licenses/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
   pull_request:
-    paths: ['src/**', 'tests-dotnet/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
+    paths: ['src/**', 'tests-dotnet/**', 'scripts/**', 'docs/licenses/**', 'DawnPro.Wpf.slnx', 'global.json', '.github/workflows/windows-native.yml']
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-and-test:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -26,5 +26,14 @@ jobs:
         run: dotnet build DawnPro.Wpf.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
       - name: Test without hardware
         run: dotnet test DawnPro.Wpf.slnx -c Release --no-build --settings tests-dotnet/default.runsettings --logger trx
-      - name: Publish local portable build
-        run: dotnet publish src/Moondrop.Wpf/Moondrop.Wpf.csproj -c Release -r win-x64 --self-contained true -o artifacts/windows-preview -p:ContinuousIntegrationBuild=true
+      - name: Package and verify Portable and Slim downloads
+        run: .\scripts\Build-WindowsRelease.ps1
+      - name: Upload verified Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Moondrop-Windows-downloads
+          path: |
+            artifacts/releases/v*/Moondrop-*.zip
+            artifacts/releases/v*/SHA256SUMS.txt
+            artifacts/releases/v*/BUILD-VERIFICATION.json
+          if-no-files-found: error
